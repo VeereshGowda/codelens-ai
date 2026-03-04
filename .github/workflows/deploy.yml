@@ -1,0 +1,218 @@
+name: CI / CD — Code Documentation Assistant
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Triggers
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]   # runs tests only; no deploy on PR
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Azure infrastructure names
+# Change these values to match your actual Azure resources.
+# All sensitive values (credentials, ACR password) live in GitHub Secrets.
+# ─────────────────────────────────────────────────────────────────────────────
+env:
+  ACR_LOGIN_SERVER: codedocacr.azurecr.io   # your ACR login server
+  RESOURCE_GROUP:   rg-codedoc-prod          # resource group name
+  API_APP_SERVICE:  codedoc-api              # App Service for FastAPI
+  UI_APP_SERVICE:   codedoc-ui               # App Service for Streamlit
+  API_IMAGE:        codedoc-api              # ACR repository name for API image
+  UI_IMAGE:         codedoc-ui               # ACR repository name for UI image
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#
+#   AZURE_CREDENTIALS   – JSON output of:
+#       az ad sp create-for-rbac \
+#         --name "codedoc-github-actions" \
+#         --role contributor \
+#         --scopes /subscriptions/<id>/resourceGroups/rg-codedoc-prod \
+#         --sdk-auth
+#
+#   ACR_USERNAME        – ACR admin username  (az acr credential show --name codedocacr)
+#   ACR_PASSWORD        – ACR admin password  (same command, --query passwords[0].value)
+#
+# Optional: set API_BASE_URL App Setting on the UI App Service so Streamlit
+# knows the FastAPI URL, e.g. https://codedoc-api.azurewebsites.net
+# ─────────────────────────────────────────────────────────────────────────────
+
+jobs:
+
+  # ── Job 1: Run test suite ────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv + Python 3.12
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run pytest
+        run: uv run pytest tests/ -v --tb=short
+
+  # ── Job 2: Build & push FastAPI image ────────────────────────────────────────
+  build-api:
+    name: Build API image
+    runs-on: ubuntu-latest
+    needs: test
+    # Only build+push on merges to main (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Derive image tag (short SHA)
+        id: meta
+        run: echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push FastAPI image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.api
+          push: true
+          cache-from: type=gha,scope=api
+          cache-to:   type=gha,mode=max,scope=api
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.API_IMAGE }}:latest
+
+  # ── Job 3: Build & push Streamlit image ──────────────────────────────────────
+  build-ui:
+    name: Build UI image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Derive image tag (short SHA)
+        id: meta
+        run: echo "tag=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Streamlit image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.ui
+          push: true
+          cache-from: type=gha,scope=ui
+          cache-to:   type=gha,mode=max,scope=ui
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.UI_IMAGE }}:${{ steps.meta.outputs.tag }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.UI_IMAGE }}:latest
+
+  # ── Job 4: Deploy FastAPI to App Service ─────────────────────────────────────
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    needs: build-api
+    environment: production        # optional: gates on a GitHub Environment with required reviewers
+
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy FastAPI container to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.API_APP_SERVICE }}
+          images:   ${{ env.ACR_LOGIN_SERVER }}/${{ env.API_IMAGE }}:${{ needs.build-api.outputs.image-tag }}
+
+      - name: Verify health probe
+        run: |
+          URL="https://${{ env.API_APP_SERVICE }}.azurewebsites.net/healthz"
+          echo "Polling $URL …"
+          for i in $(seq 1 15); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            echo "  attempt $i → HTTP $STATUS"
+            [ "$STATUS" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "Health check failed after 150 s" && exit 1
+
+  # ── Job 5: Deploy Streamlit to App Service ───────────────────────────────────
+  deploy-ui:
+    name: Deploy UI
+    runs-on: ubuntu-latest
+    # UI deployment waits for API to be healthy first
+    needs: [build-ui, deploy-api]
+    environment: production
+
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Point Streamlit at the deployed API (App Setting)
+        run: |
+          az webapp config appsettings set \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.UI_APP_SERVICE }} \
+            --settings API_BASE_URL="https://${{ env.API_APP_SERVICE }}.azurewebsites.net"
+
+      - name: Deploy Streamlit container to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.UI_APP_SERVICE }}
+          images:   ${{ env.ACR_LOGIN_SERVER }}/${{ env.UI_IMAGE }}:${{ needs.build-ui.outputs.image-tag }}
+
+      - name: Verify Streamlit health
+        run: |
+          URL="https://${{ env.UI_APP_SERVICE }}.azurewebsites.net/_stcore/health"
+          echo "Polling $URL …"
+          for i in $(seq 1 15); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            echo "  attempt $i → HTTP $STATUS"
+            [ "$STATUS" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "Health check failed after 150 s" && exit 1

@@ -1,0 +1,44 @@
+# Dockerfile.api — FastAPI backend (Option B: separate App Service)
+# Runs uvicorn on port 8000; no nginx or supervisord needed.
+
+# ── Stage 1: dependency resolution ───────────────────────────────────────────
+FROM python:3.12-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+WORKDIR /app
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+# ── Stage 2: runtime image ────────────────────────────────────────────────────
+FROM python:3.12-slim AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
+COPY src/ src/
+COPY api_server.py ./
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# ChromaDB persistence — mount Azure Files here in App Service
+VOLUME ["/app/chroma_db"]
+
+# Application log directory
+VOLUME ["/app/logs"]
+
+EXPOSE 8000
+
+# Azure App Service health probe
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/healthz || exit 1
+
+CMD ["uvicorn", "api_server:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "2"]

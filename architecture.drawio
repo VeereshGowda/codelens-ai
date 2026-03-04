@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <!-- TITLE -->
+    <mxCell id="title" value="Code Documentation Assistant — Azure Architecture Diagram" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="200" y="20" width="1200" height="40" as="geometry" />
+    </mxCell>
+    <!-- DEVELOPER / USER -->
+    <mxCell id="user" value="Developer / User" style="shape=mxgraph.azure2.user;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="40" y="300" width="65" height="85" as="geometry" />
+    </mxCell>
+    <!-- AZURE OUTER BOUNDARY -->
+    <mxCell id="azureBoundary" value="Microsoft Azure" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.azure2.azure;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacingLeft=36;fontSize=14;fontStyle=1;fillColor=#f5f5f5;strokeColor=#0078D4;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="180" y="80" width="1380" height="990" as="geometry" />
+    </mxCell>
+    <!-- APPLICATION GATEWAY (WAF v2) — sole public entry point -->
+    <mxCell id="appgw" value="Application Gateway&#xa;WAF v2&#xa;HTTPS :443" style="shape=mxgraph.azure2.application_gateway;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="240" y="290" width="65" height="100" as="geometry" />
+    </mxCell>
+    <!-- CONTAINER REGISTRY -->
+    <mxCell id="acr" value="Azure Container Registry&#xa;codedocacr.azurecr.io" style="shape=mxgraph.azure2.azure_container_registry;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="240" y="150" width="65" height="85" as="geometry" />
+    </mxCell>
+    <!-- APP SERVICE PLAN background -->
+    <mxCell id="aspBg" value="Azure App Service Plan — P2v3 Linux" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="400" y="120" width="940" height="600" as="geometry" />
+    </mxCell>
+    <!-- ── App Service: FastAPI (API) ── -->
+    <mxCell id="apiBg" value="App Service: codedoc-api&#xa;(Dockerfile.api)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="420" y="190" width="380" height="480" as="geometry" />
+    </mxCell>
+    <mxCell id="fastapiIcon" value="FastAPI + uvicorn&#xa;EXPOSE 8000&#xa;2 workers" style="shape=mxgraph.azure2.app_service;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="480" y="260" width="65" height="85" as="geometry" />
+    </mxCell>
+    <mxCell id="apiRoutes" value="GET  /healthz&#xa;POST /api/ingest&#xa;POST /api/chat&#xa;POST /api/chat/stream (SSE)&#xa;POST /api/chat/reset&#xa;GET  /api/store/status&#xa;DELETE /api/store" style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=left;verticalAlign=top;rounded=1;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="430" y="390" width="220" height="115" as="geometry" />
+    </mxCell>
+    <mxCell id="chromaLabel" value="ChromaDB (in-process)&#xa;→ Azure Files mount" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="430" y="550" width="210" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="pipelineNote" value="Ingestion: loader → chunker → embedder → ChromaDB&#xa;RAG: embed query → top-k retrieve → GPT-4o stream" style="text;html=1;strokeColor=none;fillColor=none;align=left;rounded=0;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+      <mxGeometry x="430" y="600" width="350" height="30" as="geometry" />
+    </mxCell>
+    <!-- ── App Service: Streamlit (UI) ── -->
+    <mxCell id="uiBg" value="App Service: codedoc-ui&#xa;(Dockerfile.ui)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="840" y="190" width="380" height="310" as="geometry" />
+    </mxCell>
+    <mxCell id="streamlitIcon" value="Streamlit&#xa;EXPOSE 8501&#xa;HTTP client" style="shape=mxgraph.azure2.app_service;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="950" y="260" width="65" height="85" as="geometry" />
+    </mxCell>
+    <mxCell id="uiNote" value="App Setting: API_BASE_URL&#xa;= https://codedoc-api.azurewebsites.net&#xa;&#xa;No direct imports — all calls via HTTP" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;align=left;verticalAlign=top;rounded=1;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="850" y="390" width="255" height="65" as="geometry" />
+    </mxCell>
+    <!-- AZURE OPENAI -->
+    <mxCell id="aoai" value="Azure OpenAI&#xa;&#xa;gpt-4o (chat + SSE)&#xa;text-embedding-ada-002" style="shape=mxgraph.azure2.cognitive_services;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="1250" y="220" width="65" height="115" as="geometry" />
+    </mxCell>
+    <!-- AZURE KEY VAULT -->
+    <mxCell id="kv" value="Azure Key Vault&#xa;(API keys + secrets)" style="shape=mxgraph.azure2.key_vaults;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="1250" y="440" width="65" height="100" as="geometry" />
+    </mxCell>
+    <!-- MANAGED IDENTITY -->
+    <mxCell id="mi" value="Managed Identity&#xa;(passwordless)" style="shape=mxgraph.azure2.managed_identities;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="1250" y="610" width="65" height="100" as="geometry" />
+    </mxCell>
+    <!-- AZURE FILES -->
+    <mxCell id="storage" value="Azure Files&#xa;ChromaDB + repos" style="shape=mxgraph.azure2.storage;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="590" y="840" width="65" height="100" as="geometry" />
+    </mxCell>
+    <!-- AZURE MONITOR -->
+    <mxCell id="monitor" value="Azure Monitor&#xa;+ App Insights" style="shape=mxgraph.azure2.monitor;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="1010" y="840" width="65" height="100" as="geometry" />
+    </mxCell>
+    <!-- AZURE AI SEARCH (future) -->
+    <mxCell id="aisearch" value="Azure AI Search&#xa;(future swap)" style="shape=mxgraph.azure2.cognitive_search;html=1;fillColor=#767676;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;opacity=50;" vertex="1" parent="1">
+      <mxGeometry x="800" y="840" width="65" height="100" as="geometry" />
+    </mxCell>
+    <!-- CI/CD -->
+    <mxCell id="cicd" value="GitHub Actions&#xa;CI/CD Pipeline&#xa;deploy.yml" style="shape=mxgraph.azure2.devops;html=1;fillColor=#0078D4;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="240" y="830" width="65" height="110" as="geometry" />
+    </mxCell>
+    <!-- LEGEND -->
+    <mxCell id="legend" value="━━  public HTTPS (internet)&#xa;──  internal HTTPS (Azure backbone)&#xa;- -  service-to-service call&#xa;···  future / optional" style="text;html=1;strokeColor=#666;fillColor=#f5f5f5;align=left;verticalAlign=middle;rounded=1;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="1320" y="840" width="210" height="70" as="geometry" />
+    </mxCell>
+    <!-- ===== EDGES ===== -->
+    <!-- User → App Gateway -->
+    <mxCell id="e1" value="HTTPS :443" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=3;strokeColor=#0078D4;" edge="1" source="user" target="appgw" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- App Gateway → FastAPI -->
+    <mxCell id="e2" value="/api/*  /healthz" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#0078D4;" edge="1" source="appgw" target="fastapiIcon" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- App Gateway → Streamlit -->
+    <mxCell id="e3" value="/" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=2;strokeColor=#0078D4;" edge="1" source="appgw" target="streamlitIcon" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- Streamlit → FastAPI (internal HTTPS) -->
+    <mxCell id="e4" value="HTTPS + SSE&#xa;(API_BASE_URL)" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#82b366;strokeWidth=2;" edge="1" source="streamlitIcon" target="fastapiIcon" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- FastAPI → Azure OpenAI -->
+    <mxCell id="e5" value="embed + chat" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0078D4;" edge="1" source="fastapiIcon" target="aoai" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- FastAPI → ChromaDB -->
+    <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;" edge="1" source="fastapiIcon" target="chromaLabel" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- ChromaDB → Azure Files -->
+    <mxCell id="e7" value="volume mount" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;" edge="1" source="chromaLabel" target="storage" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- FastAPI → Managed Identity -->
+    <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#0078D4;" edge="1" source="fastapiIcon" target="mi" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- Managed Identity → Key Vault -->
+    <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0078D4;" edge="1" source="mi" target="kv" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- FastAPI → Azure Monitor -->
+    <mxCell id="e10" value="OpenTelemetry" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#636363;" edge="1" source="fastapiIcon" target="monitor" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- ChromaDB → AI Search (future) -->
+    <mxCell id="e11" value="swap" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#767676;" edge="1" source="chromaLabel" target="aisearch" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- CI/CD → ACR -->
+    <mxCell id="e12" value="docker push" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="cicd" target="acr" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- ACR → API App Service -->
+    <mxCell id="e13" value="pull codedoc-api" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="acr" target="apiBg" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <!-- ACR → UI App Service -->
+    <mxCell id="e14" value="pull codedoc-ui" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="acr" target="uiBg" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
