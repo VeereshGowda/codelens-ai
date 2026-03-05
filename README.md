@@ -82,8 +82,9 @@ The Streamlit UI is a thin HTTP client — every action (ingest, chat, store sta
 | `/api/chat` | POST | Ask a question (blocking response) |
 | `/api/chat/stream` | POST | Ask a question (Server-Sent Events stream) |
 | `/api/chat/reset` | POST | Reset conversation history |
-| `/api/store/status` | GET | Chunk count + last ingested source |
-| `/api/store` | DELETE | Clear the vector store (dev/reset) |
+| `/api/store/status` | GET | Chunk count, all ingested sources list, and readiness flag |
+| `/api/store/source` | DELETE | Remove all chunks for a specific ingested source (others untouched) |
+| `/api/store` | DELETE | Clear the entire vector store — all sources (destructive) |
 
 ### 6. Ingest a codebase (CLI)
 
@@ -163,8 +164,10 @@ User (Browser)
                  ▼  port 8000
 ┌──────────────────────────────────────────┐
 │         FastAPI backend  (api_server.py)  │
-│  /healthz  /api/ingest  /api/chat/stream  │
-│  /api/chat  /api/chat/reset  /api/store   │
+│  /healthz  /api/ingest  /api/chat         │
+│  /api/chat/stream  /api/chat/reset        │
+│  /api/store/status  /api/store/source     │
+│  /api/store                               │
 │                                           │
 │  ┌──────────────┐   ┌──────────────────┐ │
 │  │  Ingestion   │   │   Assistant      │ │
